@@ -1,5 +1,10 @@
 <script setup>
 import { reactive, ref } from "vue";
+import { useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
+import { rlogin, rregister } from "@/api/user";
+
+const router = useRouter();
 
 const loginFromRef = ref();
 const loginTabName = ref("login");
@@ -36,6 +41,20 @@ function login(formEl) {
   formEl.validate((valid) => {
     if (valid) {
       console.log("提交!");
+      rlogin(loginFrom)
+        .then((res) => {
+          console.log(res);
+          if (res.status === 200) {
+            ElMessage({
+              type: "success",
+              message: "登录成功",
+            });
+            router.push("/index");
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+        });
     } else {
       console.log("错误!");
       return false;
@@ -48,6 +67,14 @@ function register(formEl) {
   formEl.validate((valid) => {
     if (valid) {
       console.log("提交!");
+      console.log(registerFrom);
+      rregister(registerFrom)
+        .then((res) => {
+          console.log(res);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
     } else {
       console.log("错误!");
       return false;
@@ -122,7 +149,7 @@ function handleClick(tab) {
             />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="register(registerFrom)"
+            <el-button type="primary" @click="register(registerFromRef)"
               >注册</el-button
             >
           </el-form-item>
