@@ -1,10 +1,13 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 
 const app = express();
+const jwtSecret = "node"; // jwt生成密钥
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 app.use("*", (req, res, next) => {
   res.header("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -23,18 +26,61 @@ app.use("*", (req, res, next) => {
 });
 
 app.post("/register", function (req, res) {
-  console.log(req.body);
-  res.cookie("sign", jwt.sign(req.body, "node"), {
-    maxAge: 5000,
-  });
-  res.send({ ...req.body, token: jwt.sign(req.body, "node") });
+  // do something...
 });
 
 app.post("/login", function (req, res) {
-  console.log(req.cookies);
+  res.cookie(
+    "sign",
+    jwt.sign(
+      {
+        ...req.body,
+        expires: new Date(new Date().getTime() + (24 + 8) * 60 * 60 * 1000),
+      },
+      jwtSecret
+    ),
+    {
+      expires: new Date(new Date().getTime() + (24 + 8) * 60 * 60 * 1000),
+    }
+  );
   res.send({
-    cookie: req.cookies,
+    ...req.body,
+    status: 200,
+    expires: 24 * 60 * 60,
+    token: jwt.sign(req.body, jwtSecret),
   });
+});
+
+app.get("/reloadToken", function (req, res) {
+  const userInfo = jwt.verify(req.cookies.sign, jwtSecret);
+  if (
+    new Date(userInfo.expires).getTime() - new Date().getTime() <
+    3600 * 1000
+  ) {
+    // token有效期少于1小时刷新token
+    res.cookie(
+      "sign",
+      jwt.sign(
+        {
+          ...userInfo,
+          expires: new Date(new Date().getTime() + (24 + 8) * 60 * 60 * 1000),
+        },
+        jwtSecret
+      ),
+      {
+        expires: new Date(new Date().getTime() + (24 + 8) * 60 * 60 * 1000),
+      }
+    );
+    res.send({
+      status: 200,
+      message: "Token刷新成功",
+      expires: 24 * 60 * 60,
+      token: jwt.sign(userInfo, jwtSecret),
+    });
+  } else {
+    // 不小与1小时返回ok
+    res.send("ok");
+  }
 });
 
 app.listen("8888");
